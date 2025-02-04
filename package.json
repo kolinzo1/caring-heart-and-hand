@@ -14,7 +14,6 @@
     "seed:refresh": "NODE_ENV=development node seeders/index.js"
   },
   "dependencies": {
-    "bcrypt": "^5.1.1",
     "bcryptjs": "^2.4.3",
     "compression": "^1.7.5",
     "cors": "^2.8.5",
