@@ -136,23 +136,13 @@ app.get("/health", async (req, res) => {
 // test database connection
 app.get("/api/test-db", async (req, res) => {
   try {
-    // Test database connection
+    console.log("Test DB endpoint hit");
     const [result] = await pool.query("SELECT 1");
-    res.json({
-      status: "success",
-      message: "Database connected successfully",
-      data: result,
-    });
+    console.log("Query result:", result);
+    res.json({ status: "success", data: result });
   } catch (error) {
-    console.error("Database connection test failed:", error);
-    res.status(500).json({
-      status: "error",
-      message: "Database connection test failed",
-      error:
-        process.env.NODE_ENV === "production"
-          ? "Internal server error"
-          : error.message,
-    });
+    console.error("DB Test Error:", error);
+    res.status(500).json({ error: error.message });
   }
 });
 // Routes
