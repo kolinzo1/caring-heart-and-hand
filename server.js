@@ -181,6 +181,11 @@ app.use((err, req, res, next) => {
   });
 });
 
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+  next();
+});
+
 const PORT = process.env.PORT || 3001;
 const server = app.listen(PORT, () => {
   logger.info(`Server running on port ${PORT}`);
