@@ -49,6 +49,19 @@ const limiter = rateLimit({
   message: "Too many requests from this IP, please try again later.",
 });
 
+app.get("/", (req, res) => {
+  res.json({ message: "Server running" });
+});
+
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok" });
+});
+
+// Add logging
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  next();
+});
 // Apply rate limiter to all routes
 app.use(limiter);
 
