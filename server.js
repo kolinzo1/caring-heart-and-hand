@@ -132,7 +132,14 @@ app.get("/health", async (req, res) => {
     });
   }
 });
+// test endpoints
+app.get("/", (req, res) => {
+  res.send("Server running");
+});
 
+app.get("/test", (req, res) => {
+  res.json({ message: "Test endpoint working" });
+});
 // test database connection
 app.get("/api/test-db", async (req, res) => {
   try {
