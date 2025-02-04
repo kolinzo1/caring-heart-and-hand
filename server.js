@@ -168,14 +168,13 @@ app.get("/api/test-db", async (req, res) => {
   }
 });
 // Routes
-app.use("/api/auth", require("./routes/auth"));
+app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/shifts", require("./routes/shifts"));
 
-// 404 handler
+// Debug logs
 app.use((req, res, next) => {
-  res.status(404).json({
-    message: "Resource not found",
-  });
+  console.log(`${req.method} ${req.path}`);
+  next();
 });
 
 // Error handling middleware
