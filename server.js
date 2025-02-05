@@ -42,14 +42,17 @@ const pool = mysql.createPool({
   queueLimit: 0,
 });
 
+app.set("trust proxy", 1);
+
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // limit each IP to 100 requests per windowMs
   standardHeaders: true,
   legacyHeaders: false,
-  trustProxy: true, // Add this for Heroku
 });
+// Apply rate limiter to all routes
+app.use(limiter);
 
 app.get("/", (req, res) => {
   res.json({ message: "Server running" });
@@ -64,8 +67,6 @@ app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
   next();
 });
-// Apply rate limiter to all routes
-app.use(limiter);
 
 // Compression middleware - add this before other middleware
 app.use(
