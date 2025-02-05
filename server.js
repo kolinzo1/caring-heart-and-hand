@@ -155,9 +155,10 @@ app.get("/", (req, res) => {
   res.send("Server running");
 });
 
-app.get("/test", (req, res) => {
-  res.json({ message: "Test endpoint working" });
+app.get("/api/test", (req, res) => {
+  res.json({ message: "API working" });
 });
+
 // test database connection
 app.get("/api/test-db", async (req, res) => {
   try {
@@ -174,9 +175,17 @@ app.get("/api/test-db", async (req, res) => {
 // Make db available to routes
 app.set("db", pool);
 
+// Add this debugging line
+console.log(
+  "Available routes:",
+  app._router.stack.map((r) => r.route?.path).filter(Boolean)
+);
+
 // Routes
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/shifts", require("./routes/shifts"));
+app.use("/api/clients", require("./routes/clientRoutes"));
+app.use("/api/time-logs", require("./routes/timeLogRoutes"));
 
 // Debug logs
 app.use((req, res, next) => {
