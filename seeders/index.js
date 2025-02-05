@@ -1,6 +1,7 @@
 require("dotenv").config();
 const mysql = require("mysql2/promise");
 const seedUsers = require("./users");
+const seedClients = require("./clients");
 
 const runSeeders = async () => {
   const pool = mysql.createPool({
@@ -15,6 +16,7 @@ const runSeeders = async () => {
 
   try {
     await seedUsers(pool);
+    await seedClients(pool);
     console.log("All seeds completed");
   } catch (error) {
     console.error("Seeding failed:", error);
