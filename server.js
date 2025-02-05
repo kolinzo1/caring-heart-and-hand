@@ -167,6 +167,10 @@ app.get("/api/test-db", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+// Make db available to routes
+app.set("db", pool);
+
 // Routes
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/shifts", require("./routes/shifts"));
