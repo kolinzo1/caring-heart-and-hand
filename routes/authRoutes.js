@@ -1,54 +1,44 @@
 const express = require("express");
 const router = express.Router();
-const { authMiddleware, validateRequest } = require("../middleware");
+const bcryptjs = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const { validateRequest } = require("../middleware");
 const { check } = require("express-validator");
-
-// Validation middleware
-const registerValidation = [
-  check("firstName", "First name is required").notEmpty(),
-  check("lastName", "Last name is required").notEmpty(),
-  check("email", "Please include a valid email").isEmail(),
-  check(
-    "password",
-    "Please enter a password with 6 or more characters"
-  ).isLength({ min: 6 }),
-  check("phone", "Phone number is required").notEmpty(),
-];
 
 const loginValidation = [
   check("email", "Please include a valid email").isEmail(),
   check("password", "Password is required").exists(),
 ];
 
-// Routes
-router.post(
-  "/register",
-  registerValidation,
-  validateRequest,
-  async (req, res) => {
-    // Registration logic here
-    res.status(200).json({ message: "Registration endpoint" });
-  }
-);
-
 router.post("/login", loginValidation, validateRequest, async (req, res) => {
-  // Login logic here
-  res.status(200).json({ message: "Login endpoint" });
-});
+  try {
+    const { email, password } = req.body;
+    const [users] = await req.app
+      .get("db")
+      .query("SELECT * FROM users WHERE email = ?", [email]);
 
-router.post("/logout", authMiddleware, async (req, res) => {
-  // Logout logic here
-  res.status(200).json({ message: "Logout endpoint" });
-});
+    if (users.length === 0) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
 
-router.post("/forgot-password", async (req, res) => {
-  // Forgot password logic here
-  res.status(200).json({ message: "Forgot password endpoint" });
-});
+    const user = users[0];
+    const validPassword = await bcryptjs.compare(password, user.password_hash);
 
-router.post("/reset-password", async (req, res) => {
-  // Reset password logic here
-  res.status(200).json({ message: "Reset password endpoint" });
+    if (!validPassword) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    const token = jwt.sign(
+      { userId: user.id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "24h" }
+    );
+
+    res.json({ token, role: user.role });
+  } catch (error) {
+    console.error("Login error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
 module.exports = router;
