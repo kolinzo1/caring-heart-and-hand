@@ -1,6 +1,24 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 
+const authMiddleware = async (req, res, next) => {
+  try {
+    const token = req.header("Authorization");
+    console.log("Incoming token:", token);
+
+    if (!token) {
+      console.log("No token provided");
+      return res.status(401).json({ message: "No token provided" });
+    }
+
+    // Rest of your auth logic
+    next();
+  } catch (error) {
+    console.error("Auth middleware error:", error);
+    res.status(401).json({ message: "Authentication failed" });
+  }
+};
+
 exports.authMiddleware = async (req, res, next) => {
   try {
     let token;
