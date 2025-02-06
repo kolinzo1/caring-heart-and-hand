@@ -1,4 +1,7 @@
 require("dotenv").config();
+
+app.set("trust proxy", 1);
+
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
@@ -159,6 +162,18 @@ app.get("/api/test", (req, res) => {
   res.json({ message: "API working" });
 });
 
+// Database connection check
+const testConnection = async () => {
+  try {
+    await pool.query("SELECT 1");
+    console.log("Database connected");
+  } catch (err) {
+    console.error("Database connection failed:", err);
+  }
+};
+
+testConnection();
+
 // test database connection
 app.get("/api/test-db", async (req, res) => {
   try {
@@ -180,6 +195,11 @@ console.log(
   "Available routes:",
   app._router.stack.map((r) => r.route?.path).filter(Boolean)
 );
+
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url}`, req.body);
+  next();
+});
 
 // Routes
 app.use("/api/auth", require("./routes/authRoutes"));
