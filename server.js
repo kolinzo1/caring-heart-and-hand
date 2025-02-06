@@ -255,3 +255,12 @@ process.on("unhandledRejection", (reason, promise) => {
   // Perform graceful shutdown
   process.exit(1);
 });
+
+pool
+  .query("SELECT 1")
+  .then(() => {
+    console.log("Database connected");
+  })
+  .catch((err) => {
+    console.error("Database connection failed:", err);
+  });
