@@ -10,12 +10,12 @@ router.post("/login", async (req, res) => {
       .get("db")
       .query("SELECT * FROM users WHERE email = ?", [email]);
 
-    if (users.length === 0) {
+    if (!users.length) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
     const user = users[0];
-    const validPassword = await bcrypt.compare(password, user.password_hash);
+    const validPassword = await bcryptjs.compare(password, user.password_hash);
 
     if (!validPassword) {
       return res.status(401).json({ message: "Invalid credentials" });
@@ -27,8 +27,17 @@ router.post("/login", async (req, res) => {
       { expiresIn: "24h" }
     );
 
-    res.json({ token, role: user.role });
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        name: `${user.first_name} ${user.last_name}`,
+      },
+    });
   } catch (error) {
+    console.error("Login error:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
