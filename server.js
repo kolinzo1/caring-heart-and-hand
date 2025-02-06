@@ -1,9 +1,17 @@
 require("dotenv").config();
 
-app.set("trust proxy", 1);
-
 const express = require("express");
 const cors = require("cors");
+
+app.set("trust proxy", 1);
+
+app.use(
+  cors({
+    origin: "https://caring-heart-and-hand-client.vercel.app",
+    credentials: true,
+  })
+);
+
 const helmet = require("helmet");
 const compression = require("compression");
 const mysql = require("mysql2/promise");
