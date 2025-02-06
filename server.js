@@ -2,16 +2,6 @@ require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
-
-app.set("trust proxy", 1);
-
-app.use(
-  cors({
-    origin: "https://caring-heart-and-hand-client.vercel.app",
-    credentials: true,
-  })
-);
-
 const helmet = require("helmet");
 const compression = require("compression");
 const mysql = require("mysql2/promise");
@@ -32,6 +22,16 @@ const logger = winston.createLogger({
 });
 
 // Add console logging if not in production
+
+const app = express();
+
+app.use(
+  cors({
+    origin: "https://caring-heart-and-hand-client.vercel.app",
+    credentials: true,
+  })
+);
+
 if (process.env.NODE_ENV !== "production") {
   logger.add(
     new winston.transports.Console({
@@ -39,9 +39,6 @@ if (process.env.NODE_ENV !== "production") {
     })
   );
 }
-
-const app = express();
-
 // Database connection pool
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
