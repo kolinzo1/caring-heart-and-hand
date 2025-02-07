@@ -5,13 +5,13 @@ const { authMiddleware } = require("../middleware/authMiddleware");
 // Create time log
 router.post("/", authMiddleware, async (req, res) => {
   try {
-    const { clientId, date, startTime, endTime, notes } = req.body;
+    const { clientId, date, startTime, endTime, notes, serviceType } = req.body;
     const userId = req.user.id; // From auth middleware
 
     const [result] = await req.app.get("db").query(
-      `INSERT INTO time_logs (user_id, client_id, date, start_time, end_time, notes)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-      [userId, clientId, date, startTime, endTime, notes]
+      `INSERT INTO time_logs (user_id, client_id, date, start_time, end_time, notes, service_type)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [userId, clientId, date, startTime, endTime, notes, serviceType]
     );
 
     res.status(201).json({
