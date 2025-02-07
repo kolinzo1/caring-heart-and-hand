@@ -125,8 +125,7 @@ app.use(helmet.xssFilter());
 // CORS configuration
 app.use(
   cors({
-    origin:
-      "https://caring-heart-and-hand-client-4fcobjyc-kolinzo1s-projects.vercel.app",
+    origin: "https://caring-heart-and-hand-client.vercel.app",
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
