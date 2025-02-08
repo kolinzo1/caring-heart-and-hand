@@ -161,4 +161,48 @@ router.get("/:id", authMiddleware, async (req, res) => {
   }
 });
 
+router.post("/:id/report", authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+    const { tasksCompleted, clientCondition, notes, concerns, followUpNeeded } =
+      req.body;
+
+    // First verify the time log belongs to this user
+    const [timeLog] = await req.app
+      .get("db")
+      .query("SELECT id FROM time_logs WHERE id = ? AND user_id = ?", [
+        id,
+        userId,
+      ]);
+
+    if (timeLog.length === 0) {
+      return res.status(404).json({ message: "Time log not found" });
+    }
+
+    // Insert the report
+    const [result] = await req.app.get("db").query(
+      `INSERT INTO shift_reports 
+       (shift_id, tasks_completed, client_condition, notes, concerns, follow_up_needed)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        JSON.stringify(tasksCompleted),
+        clientCondition,
+        notes,
+        concerns,
+        followUpNeeded,
+      ]
+    );
+
+    res.status(201).json({
+      id: result.insertId,
+      message: "Report submitted successfully",
+    });
+  } catch (error) {
+    console.error("Error submitting shift report:", error);
+    res.status(500).json({ message: "Error submitting shift report" });
+  }
+});
+
 module.exports = router;
