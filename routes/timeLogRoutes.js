@@ -6,9 +6,22 @@ const { authMiddleware } = require("../middleware/authMiddleware");
 router.post("/", authMiddleware, async (req, res) => {
   try {
     const { clientId, date, startTime, endTime, notes, serviceType } = req.body;
+
+    // Debug log to check what we're getting from auth
+    console.log("Auth user:", req.user);
+
+    // Make sure we have a user ID
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        message: "Unauthorized - User ID not found",
+        details: "Missing user ID from authentication",
+      });
+    }
+
     const userId = req.user.id;
 
-    console.log("Received data:", {
+    // Debug log the data we're about to insert
+    console.log("Inserting data:", {
       userId,
       clientId,
       date,
@@ -18,17 +31,11 @@ router.post("/", authMiddleware, async (req, res) => {
       serviceType,
     });
 
-    const [result] = await req.app
-      .get("db")
-      .query(
-        `INSERT INTO time_logs (user_id, client_id, date, start_time, end_time, notes, service_type)
+    const [result] = await req.app.get("db").query(
+      `INSERT INTO time_logs (user_id, client_id, date, start_time, end_time, notes, service_type)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [userId, clientId, date, startTime, endTime, notes, serviceType]
-      )
-      .catch((err) => {
-        console.error("SQL Error:", err.message);
-        throw err;
-      });
+      [userId, clientId, date, startTime, endTime, notes, serviceType]
+    );
 
     res.status(201).json({
       id: result.insertId,
@@ -36,9 +43,12 @@ router.post("/", authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error("Error creating time log:", error);
+    // Send back more detailed error information
     res.status(500).json({
       message: "Error creating time log",
-      details: error.message, // Add this to get more specific error info
+      details: error.message,
+      // If it's a SQL error, include the SQL error code
+      sqlErrorCode: error.code,
     });
   }
 });
