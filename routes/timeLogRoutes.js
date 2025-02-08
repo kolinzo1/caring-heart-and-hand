@@ -6,13 +6,29 @@ const { authMiddleware } = require("../middleware/authMiddleware");
 router.post("/", authMiddleware, async (req, res) => {
   try {
     const { clientId, date, startTime, endTime, notes, serviceType } = req.body;
-    const userId = req.user.id; // From auth middleware
+    const userId = req.user.id;
 
-    const [result] = await req.app.get("db").query(
-      `INSERT INTO time_logs (user_id, client_id, date, start_time, end_time, notes, service_type)
+    console.log("Received data:", {
+      userId,
+      clientId,
+      date,
+      startTime,
+      endTime,
+      notes,
+      serviceType,
+    });
+
+    const [result] = await req.app
+      .get("db")
+      .query(
+        `INSERT INTO time_logs (user_id, client_id, date, start_time, end_time, notes, service_type)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [userId, clientId, date, startTime, endTime, notes, serviceType]
-    );
+        [userId, clientId, date, startTime, endTime, notes, serviceType]
+      )
+      .catch((err) => {
+        console.error("SQL Error:", err.message);
+        throw err;
+      });
 
     res.status(201).json({
       id: result.insertId,
@@ -20,7 +36,10 @@ router.post("/", authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error("Error creating time log:", error);
-    res.status(500).json({ message: "Error creating time log" });
+    res.status(500).json({
+      message: "Error creating time log",
+      details: error.message, // Add this to get more specific error info
+    });
   }
 });
 
