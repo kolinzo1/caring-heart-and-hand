@@ -210,6 +210,7 @@ app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/shifts", require("./routes/shifts"));
 app.use("/api/clients", require("./routes/clientRoutes"));
 app.use("/api/time-logs", require("./routes/timeLogRoutes"));
+app.use("/api/shift-reports", require("./routes/shiftReportRoutes"));
 
 // Debug logs
 app.use((req, res, next) => {
