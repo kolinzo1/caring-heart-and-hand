@@ -13,7 +13,7 @@ router.get("/:shiftId", async (req, res) => {
     // First verify the shift belongs to this user
     const [shifts] = await req.app.get("db").query(
       `SELECT s.*, c.first_name, c.last_name 
-       FROM shifts s
+       FROM time_logs s
        JOIN clients c ON s.client_id = c.id
        WHERE s.id = ? AND s.user_id = ?`,
       [shiftId, userId]
@@ -54,7 +54,7 @@ router.post("/:shiftId/report", async (req, res) => {
     // Verify shift belongs to user
     const [shifts] = await req.app
       .get("db")
-      .query("SELECT id FROM shifts WHERE id = ? AND user_id = ?", [
+      .query("SELECT id FROM time_logs WHERE id = ? AND user_id = ?", [
         shiftId,
         userId,
       ]);

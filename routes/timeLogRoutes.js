@@ -78,4 +78,37 @@ router.get("/", authMiddleware, async (req, res) => {
   }
 });
 
+// Get recent time logs for user
+router.get("/recent", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const [logs] = await req.app.get("db").query(
+      `SELECT tl.*, c.first_name, c.last_name 
+       FROM time_logs tl
+       JOIN clients c ON tl.client_id = c.id
+       WHERE tl.user_id = ?
+       ORDER BY tl.created_at DESC
+       LIMIT 5`,
+      [userId]
+    );
+
+    // Transform the data to match frontend expectations
+    const formattedLogs = logs.map((log) => ({
+      id: log.id,
+      date: log.date,
+      startTime: log.start_time,
+      endTime: log.end_time,
+      notes: log.notes,
+      serviceType: log.service_type,
+      clientName: `${log.first_name} ${log.last_name}`,
+      status: "Completed", // You might want to add a status field to your database
+    }));
+
+    res.json(formattedLogs);
+  } catch (error) {
+    console.error("Error fetching recent time logs:", error);
+    res.status(500).json({ message: "Error fetching recent time logs" });
+  }
+});
+
 module.exports = router;
