@@ -28,13 +28,23 @@ router.post("/login", loginValidation, validateRequest, async (req, res) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
+    // Create token with id instead of userId to match frontend expectations
     const token = jwt.sign(
-      { userId: user.id, role: user.role },
+      { id: user.id, role: user.role }, // Change userId to id
       process.env.JWT_SECRET,
       { expiresIn: "24h" }
     );
 
-    res.json({ token, role: user.role });
+    // Send user data along with token
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        // Add any other user fields you need, but remove sensitive data like password_hash
+      },
+    });
   } catch (error) {
     console.error("Login error:", error);
     res.status(500).json({ message: "Server error" });
