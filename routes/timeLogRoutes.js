@@ -120,4 +120,45 @@ router.get("/recent", authMiddleware, async (req, res) => {
   }
 });
 
+// Get single time log with client details
+router.get("/:id", authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    const [logs] = await req.app.get("db").query(
+      `SELECT 
+        tl.*,
+        c.first_name,
+        c.last_name,
+        c.id as client_id
+       FROM time_logs tl
+       JOIN clients c ON tl.client_id = c.id
+       WHERE tl.id = ? AND tl.user_id = ?
+       LIMIT 1`,
+      [id, userId]
+    );
+
+    if (logs.length === 0) {
+      return res.status(404).json({ message: "Shift not found" });
+    }
+
+    const shift = {
+      id: logs[0].id,
+      clientName: `${logs[0].first_name} ${logs[0].last_name}`,
+      date: logs[0].date,
+      start_time: logs[0].start_time,
+      end_time: logs[0].end_time,
+      notes: logs[0].notes,
+      service_type: logs[0].service_type,
+      client_id: logs[0].client_id,
+    };
+
+    res.json(shift);
+  } catch (error) {
+    console.error("Error fetching time log:", error);
+    res.status(500).json({ message: "Error fetching time log" });
+  }
+});
+
 module.exports = router;
