@@ -82,8 +82,14 @@ router.get("/", authMiddleware, async (req, res) => {
 router.get("/recent", authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
+    console.log("Fetching recent logs for user:", userId);
+
     const [logs] = await req.app.get("db").query(
-      `SELECT tl.*, c.first_name, c.last_name 
+      `SELECT 
+        tl.*,
+        c.first_name,
+        c.last_name,
+        c.id as client_id
        FROM time_logs tl
        JOIN clients c ON tl.client_id = c.id
        WHERE tl.user_id = ?
@@ -92,18 +98,21 @@ router.get("/recent", authMiddleware, async (req, res) => {
       [userId]
     );
 
-    // Transform the data to match frontend expectations
+    console.log("Retrieved logs:", logs); // Debug log
+
     const formattedLogs = logs.map((log) => ({
       id: log.id,
+      first_name: log.first_name,
+      last_name: log.last_name,
       date: log.date,
-      startTime: log.start_time,
-      endTime: log.end_time,
+      start_time: log.start_time,
+      end_time: log.end_time,
       notes: log.notes,
-      serviceType: log.service_type,
-      clientName: `${log.first_name} ${log.last_name}`,
-      status: "Completed", // You might want to add a status field to your database
+      service_type: log.service_type,
+      client_id: log.client_id,
     }));
 
+    console.log("Sending formatted logs:", formattedLogs); // Debug log
     res.json(formattedLogs);
   } catch (error) {
     console.error("Error fetching recent time logs:", error);
