@@ -28,14 +28,26 @@ const authMiddleware = async (req, res, next) => {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       console.log("Decoded token:", decoded); // Debug log
 
+      // Check if we have the required user data
+      if (!decoded.id) {
+        console.log("Token missing user ID:", decoded);
+        return res.status(401).json({
+          success: false,
+          message: "Invalid token - missing user ID",
+          details: "Token payload does not contain user ID",
+        });
+      }
+
       // Add user info to request
       req.user = decoded;
+      console.log("User set in request:", req.user); // Add this debug log
       next();
     } catch (err) {
       console.error("Token verification failed:", err); // Debug log
       return res.status(401).json({
         success: false,
         message: "Invalid token",
+        details: err.message,
       });
     }
   } catch (error) {
@@ -43,6 +55,7 @@ const authMiddleware = async (req, res, next) => {
     return res.status(500).json({
       success: false,
       message: "Server Error",
+      details: error.message,
     });
   }
 };
