@@ -35,7 +35,7 @@ router.get("/", async (req, res) => {
     const query = `
       SELECT 
         s.*, c.first_name, c.last_name
-      FROM shifts s
+      FROM time_logs s
       JOIN clients c ON s.client_id = c.id
       WHERE s.user_id = ?
       ORDER BY s.date DESC, s.start_time DESC`;
