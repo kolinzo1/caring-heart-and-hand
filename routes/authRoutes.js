@@ -10,9 +10,11 @@ const loginValidation = [
   check("password", "Password is required").exists(),
 ];
 
-router.post("/login", loginValidation, validateRequest, async (req, res) => {
+router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
+
+    // Get user from database
     const [users] = await req.app
       .get("db")
       .query("SELECT * FROM users WHERE email = ?", [email]);
@@ -22,27 +24,31 @@ router.post("/login", loginValidation, validateRequest, async (req, res) => {
     }
 
     const user = users[0];
-    const validPassword = await bcryptjs.compare(password, user.password_hash);
 
+    // Verify password
+    const validPassword = await bcryptjs.compare(password, user.password_hash);
     if (!validPassword) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    // Create token with id instead of userId to match frontend expectations
+    // Create token with role
     const token = jwt.sign(
-      { id: user.id, role: user.role }, // Change userId to id
+      {
+        id: user.id,
+        role: user.role, // Make sure role is included
+        email: user.email,
+      },
       process.env.JWT_SECRET,
       { expiresIn: "24h" }
     );
 
-    // Send user data along with token
+    // Send response with role info
     res.json({
       token,
       user: {
         id: user.id,
         email: user.email,
         role: user.role,
-        // Add any other user fields you need, but remove sensitive data like password_hash
       },
     });
   } catch (error) {
