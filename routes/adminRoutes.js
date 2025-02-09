@@ -1,3 +1,5 @@
+import authMiddleware from "../middleware/authMiddleware";
+
 const express = require("express");
 const router = express.Router();
 const {
@@ -38,23 +40,25 @@ router.get("/dashboard", async (req, res) => {
       "SELECT COUNT(*) as count FROM care_requests WHERE status = 'pending'"
     );
 
-    // Get total revenue
+    // Get total revenue (example query)
     const [revenue] = await db.query(
-      `SELECT COALESCE(SUM(amount), 0) as total FROM payments 
-       WHERE YEAR(created_at) = YEAR(CURRENT_DATE())`
+      "SELECT COALESCE(SUM(amount), 0) as total FROM payments"
     );
 
+    // Send response
     res.json({
       stats: {
-        totalClients: clientCount[0].count || 0,
-        totalStaff: staffCount[0].count || 0,
-        activeRequests: requestCount[0].count || 0,
-        totalRevenue: revenue[0].total || 0,
+        totalClients: parseInt(clientCount[0].count) || 0,
+        totalStaff: parseInt(staffCount[0].count) || 0,
+        activeRequests: parseInt(requestCount[0].count) || 0,
+        totalRevenue: parseFloat(revenue[0].total) || 0,
       },
     });
   } catch (error) {
-    console.error("Admin dashboard error:", error);
-    res.status(500).json({ message: "Error fetching dashboard data" });
+    console.error("Dashboard error:", error);
+    res.status(500).json({
+      message: "Error fetching dashboard data",
+    });
   }
 });
 
