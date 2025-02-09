@@ -8,6 +8,13 @@ const mysql = require("mysql2/promise");
 const rateLimit = require("express-rate-limit");
 const winston = require("winston");
 
+const corsOptions = {
+  origin: ["https://caring-heart-and-hand-client.vercel.app"],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
+  optionsSuccessStatus: 200,
+};
 // Initialize logger
 const logger = winston.createLogger({
   level: process.env.NODE_ENV === "production" ? "info" : "debug",
@@ -25,6 +32,17 @@ const logger = winston.createLogger({
 
 const app = express();
 
+// Database connection pool
+const pool = mysql.createPool({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+});
+
 app.use(
   cors({
     origin: "https://caring-heart-and-hand-client.vercel.app",
@@ -39,16 +57,6 @@ if (process.env.NODE_ENV !== "production") {
     })
   );
 }
-// Database connection pool
-const pool = mysql.createPool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
-});
 
 app.set("trust proxy", 1);
 
@@ -59,6 +67,10 @@ const limiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
+
+// Add preflight handling
+app.options("*", cors(corsOptions));
+
 // Apply rate limiter to all routes
 app.use(limiter);
 
@@ -123,16 +135,7 @@ app.use(helmet.referrerPolicy());
 app.use(helmet.xssFilter());
 
 // CORS configuration
-app.use(
-  cors({
-    origin: "https://caring-heart-and-hand-client.vercel.app",
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
-    maxAge: 600,
-  })
-);
+app.use(cors(corsOptions));
 
 app.use(express.json());
 
