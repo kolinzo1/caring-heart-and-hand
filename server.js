@@ -84,7 +84,24 @@ app.get("/api/health", (req, res) => {
 
 // Add logging
 app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  res.setHeader(
+    "Access-Control-Allow-Origin",
+    "https://caring-heart-and-hand-client.vercel.app"
+  );
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, DELETE, OPTIONS"
+  );
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+
+  // Handle preflight requests
+  if (req.method === "OPTIONS") {
+    return res.status(200).json({
+      status: "success",
+    });
+  }
+
   next();
 });
 
