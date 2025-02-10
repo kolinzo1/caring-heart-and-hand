@@ -3,6 +3,9 @@ const router = express.Router();
 const { body, validationResult } = require("express-validator");
 const mysql = require("mysql2/promise");
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const { authMiddleware, authorize } = require("../middleware/authMiddleware");
+const { adminMiddleware } = require("../middleware/adminMiddleware");
 
 // Database connection pool
 const pool = mysql.createPool({
