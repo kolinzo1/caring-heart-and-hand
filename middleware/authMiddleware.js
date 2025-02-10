@@ -1,5 +1,4 @@
 const jwt = require("jsonwebtoken");
-const User = require("../models/User");
 
 const authMiddleware = async (req, res, next) => {
   try {
@@ -60,16 +59,4 @@ const authMiddleware = async (req, res, next) => {
   }
 };
 
-const authorize = (...roles) => {
-  return (req, res, next) => {
-    if (!roles.includes(req.user.role)) {
-      return res.status(403).json({
-        success: false,
-        message: "User role not authorized",
-      });
-    }
-    next();
-  };
-};
-
-module.exports = { authMiddleware, authorize };
+module.exports = { authMiddleware };
