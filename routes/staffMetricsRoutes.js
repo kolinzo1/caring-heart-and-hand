@@ -1,9 +1,7 @@
 const express = require("express");
 const router = express.Router();
-const {
-  authMiddleware,
-  adminMiddleware,
-} = require("../middleware/authMiddleware");
+const { authMiddleware } = require("../middleware/authMiddleware");
+const { adminMiddleware } = require("../middleware/adminMiddleware");
 
 // Get performance metrics for all staff
 router.get("/metrics", [authMiddleware, adminMiddleware], async (req, res) => {

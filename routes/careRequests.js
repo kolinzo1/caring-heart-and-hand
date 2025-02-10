@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const CareRequest = require("../models/CareRequest");
-const authMiddleware = require("../middleware/auth");
+const authMiddleware = require("../middleware/authMiddleware");
 
 // Create care request
 router.post("/", async (req, res) => {

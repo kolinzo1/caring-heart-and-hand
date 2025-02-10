@@ -1,9 +1,7 @@
 const express = require("express");
 const router = express.Router();
-const {
-  authMiddleware,
-  adminMiddleware,
-} = require("../middleware/authMiddleware");
+const { authMiddleware } = require("../middleware/authMiddleware");
+const { adminMiddleware } = require("../middleware/adminMiddleware");
 
 // Public routes
 router.get("/posts", async (req, res) => {
