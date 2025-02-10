@@ -53,6 +53,44 @@ const authMiddleware = (req, res, next) => {
 };
 
 // GET all team members
+const express = require("express");
+const router = express.Router();
+const { body, validationResult } = require("express-validator");
+const mysql = require("mysql2/promise");
+const bcrypt = require("bcryptjs");
+const { authMiddleware } = require("../middleware/authMiddleware"); // Import instead of redefining
+
+// Database connection pool
+const pool = mysql.createPool({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+});
+
+// Validation middleware
+const validateTeamMember = [
+  body("firstName").trim().notEmpty().withMessage("First name is required"),
+  body("lastName").trim().notEmpty().withMessage("Last name is required"),
+  body("email").isEmail().withMessage("Valid email is required"),
+  body("role").isIn(["admin", "staff"]).withMessage("Invalid role selected"),
+  body("phone")
+    .optional()
+    .matches(/^\+?[\d\s-()]+$/)
+    .withMessage("Invalid phone number format"),
+  body("position").optional().trim(),
+  body("department").optional().trim(),
+  body("qualifications").optional().trim(),
+  body("certifications").optional().isArray(),
+];
+
+// Remove this block as we're importing authMiddleware instead
+// const authMiddleware = (req, res, next) => { ... };
+
+// GET all team members
 router.get("/", authMiddleware, async (req, res) => {
   try {
     const [rows] = await pool.execute(`
