@@ -237,9 +237,9 @@ app.use("/api/time-logs", require("./routes/timeLogRoutes"));
 app.use("/api/shift-reports", require("./routes/shiftReportRoutes"));
 app.use("/api/staff", require("./routes/staffRoutes"));
 app.use("/api/admin", require("./routes/adminRoutes"));
-app.use("/api/blog", require('./routes/blogRoutes');
-app.use('/api/schedules', require('./routes/scheduleRoutes');
-app.use('/api/admin/staff', require('./routes/staffMetricsRoutes');
+app.use("/api/blog", require("./routes/blogRoutes"));
+app.use("/api/schedules", require("./routes/scheduleRoutes"));
+app.use("/api/admin/staff", require("./routes/staffMetricsRoutes"));
 
 // Debug logs
 app.use((req, res, next) => {
