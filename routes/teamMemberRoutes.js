@@ -1,7 +1,6 @@
 const express = require("express");
 const router = express.Router();
 const { body, validationResult } = require("express-validator");
-const auth = require("../middleware/auth");
 const mysql = require("mysql2/promise");
 const bcrypt = require("bcryptjs");
 
@@ -16,7 +15,7 @@ const pool = mysql.createPool({
   queueLimit: 0,
 });
 
-// Validation middleware for team member data
+// Validation middleware
 const validateTeamMember = [
   body("firstName").trim().notEmpty().withMessage("First name is required"),
   body("lastName").trim().notEmpty().withMessage("Last name is required"),
@@ -32,8 +31,26 @@ const validateTeamMember = [
   body("certifications").optional().isArray(),
 ];
 
-// GET /api/team - Get all team members
-router.get("/", auth, async (req, res) => {
+// Authentication middleware
+const authMiddleware = (req, res, next) => {
+  try {
+    const token = req.header("Authorization")?.replace("Bearer ", "");
+    if (!token) {
+      return res
+        .status(401)
+        .json({ message: "No authentication token, authorization denied" });
+    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (error) {
+    console.error("Auth middleware error:", error);
+    res.status(401).json({ message: "Token is not valid" });
+  }
+};
+
+// GET all team members
+router.get("/", authMiddleware, async (req, res) => {
   try {
     const [rows] = await pool.execute(`
       SELECT 
@@ -57,7 +74,6 @@ router.get("/", auth, async (req, res) => {
       ORDER BY u.created_at DESC
     `);
 
-    // Parse JSON fields
     const teamMembers = rows.map((member) => ({
       ...member,
       certifications: member.certifications
@@ -74,8 +90,8 @@ router.get("/", auth, async (req, res) => {
   }
 });
 
-// POST /api/team - Add new team member
-router.post("/", [auth, validateTeamMember], async (req, res) => {
+// POST new team member
+router.post("/", [authMiddleware, ...validateTeamMember], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
@@ -98,7 +114,6 @@ router.post("/", [auth, validateTeamMember], async (req, res) => {
       certifications,
     } = req.body;
 
-    // Create user record
     const [userResult] = await connection.execute(
       "INSERT INTO users (email, password_hash, first_name, last_name, role, phone, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
       [
@@ -112,7 +127,6 @@ router.post("/", [auth, validateTeamMember], async (req, res) => {
       ]
     );
 
-    // Create staff profile if additional details provided
     if (position || department || qualifications || certifications) {
       await connection.execute(
         "INSERT INTO staff_profiles (user_id, position, department, qualifications, certifications, start_date) VALUES (?, ?, ?, ?, ?, CURDATE())",
@@ -128,7 +142,6 @@ router.post("/", [auth, validateTeamMember], async (req, res) => {
 
     await connection.commit();
 
-    // Fetch the created user with their profile
     const [newMember] = await connection.execute(
       `
       SELECT 
@@ -162,70 +175,70 @@ router.post("/", [auth, validateTeamMember], async (req, res) => {
   }
 });
 
-// PUT /api/team/:id - Update team member
-router.put("/:id", [auth, validateTeamMember], async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
-
-  const connection = await pool.getConnection();
-  try {
-    await connection.beginTransaction();
-
-    const {
-      firstName,
-      lastName,
-      email,
-      role,
-      phone,
-      position,
-      department,
-      qualifications,
-      certifications,
-    } = req.body;
-
-    // Update user record
-    await connection.execute(
-      "UPDATE users SET email = ?, first_name = ?, last_name = ?, role = ?, phone = ? WHERE id = ?",
-      [email, firstName, lastName, role, phone, req.params.id]
-    );
-
-    // Update or create staff profile
-    const [existingProfile] = await connection.execute(
-      "SELECT id FROM staff_profiles WHERE user_id = ?",
-      [req.params.id]
-    );
-
-    if (existingProfile.length > 0) {
-      await connection.execute(
-        "UPDATE staff_profiles SET position = ?, department = ?, qualifications = ?, certifications = ? WHERE user_id = ?",
-        [
-          position,
-          department,
-          qualifications,
-          JSON.stringify(certifications || []),
-          req.params.id,
-        ]
-      );
-    } else {
-      await connection.execute(
-        "INSERT INTO staff_profiles (user_id, position, department, qualifications, certifications) VALUES (?, ?, ?, ?, ?)",
-        [
-          req.params.id,
-          position,
-          department,
-          qualifications,
-          JSON.stringify(certifications || []),
-        ]
-      );
+// PUT update team member
+router.put(
+  "/:id",
+  [authMiddleware, ...validateTeamMember],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
     }
 
-    await connection.commit();
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
 
-    // Fetch updated member
-    const [updatedMember] = await connection.execute(
-      `
+      const {
+        firstName,
+        lastName,
+        email,
+        role,
+        phone,
+        position,
+        department,
+        qualifications,
+        certifications,
+      } = req.body;
+
+      await connection.execute(
+        "UPDATE users SET email = ?, first_name = ?, last_name = ?, role = ?, phone = ? WHERE id = ?",
+        [email, firstName, lastName, role, phone, req.params.id]
+      );
+
+      const [existingProfile] = await connection.execute(
+        "SELECT id FROM staff_profiles WHERE user_id = ?",
+        [req.params.id]
+      );
+
+      if (existingProfile.length > 0) {
+        await connection.execute(
+          "UPDATE staff_profiles SET position = ?, department = ?, qualifications = ?, certifications = ? WHERE user_id = ?",
+          [
+            position,
+            department,
+            qualifications,
+            JSON.stringify(certifications || []),
+            req.params.id,
+          ]
+        );
+      } else {
+        await connection.execute(
+          "INSERT INTO staff_profiles (user_id, position, department, qualifications, certifications) VALUES (?, ?, ?, ?, ?)",
+          [
+            req.params.id,
+            position,
+            department,
+            qualifications,
+            JSON.stringify(certifications || []),
+          ]
+        );
+      }
+
+      await connection.commit();
+
+      const [updatedMember] = await connection.execute(
+        `
       SELECT 
         u.id,
         u.email,
@@ -242,33 +255,32 @@ router.put("/:id", [auth, validateTeamMember], async (req, res) => {
       LEFT JOIN staff_profiles sp ON u.id = sp.user_id
       WHERE u.id = ?
     `,
-      [req.params.id]
-    );
+        [req.params.id]
+      );
 
-    res.json(updatedMember[0]);
-  } catch (error) {
-    await connection.rollback();
-    console.error("Error updating team member:", error);
-    res
-      .status(500)
-      .json({ message: "Server error while updating team member" });
-  } finally {
-    connection.release();
+      res.json(updatedMember[0]);
+    } catch (error) {
+      await connection.rollback();
+      console.error("Error updating team member:", error);
+      res
+        .status(500)
+        .json({ message: "Server error while updating team member" });
+    } finally {
+      connection.release();
+    }
   }
-});
+);
 
-// DELETE /api/team/:id - Delete team member
-router.delete("/:id", auth, async (req, res) => {
+// DELETE team member
+router.delete("/:id", authMiddleware, async (req, res) => {
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
 
-    // Delete staff profile first (due to foreign key constraint)
     await connection.execute("DELETE FROM staff_profiles WHERE user_id = ?", [
       req.params.id,
     ]);
 
-    // Delete user record
     await connection.execute("DELETE FROM users WHERE id = ?", [req.params.id]);
 
     await connection.commit();
