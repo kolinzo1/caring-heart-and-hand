@@ -3,6 +3,26 @@ const router = express.Router();
 const bcrypt = require("bcryptjs");
 const { authMiddleware } = require("../middleware/authMiddleware");
 
+// Get all staff members
+router.get("/", authMiddleware, async (req, res) => {
+  try {
+    const [rows] = await req.app.get("db").query(
+      `SELECT u.id, u.first_name, u.last_name, u.email, u.role, 
+              u.phone, u.status, u.profile_picture_url,
+              s.position, s.department
+       FROM users u
+       LEFT JOIN staff_profiles s ON u.id = s.user_id
+       WHERE u.role = 'staff'
+       ORDER BY u.first_name, u.last_name`
+    );
+
+    res.json(rows);
+  } catch (error) {
+    console.error("Error fetching staff members:", error);
+    res.status(500).json({ message: "Error fetching staff members" });
+  }
+});
+
 // Get staff profile
 router.get("/profile", authMiddleware, async (req, res) => {
   try {
