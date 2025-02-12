@@ -1,80 +1,49 @@
 const express = require("express");
 const router = express.Router();
 const multer = require("multer");
+const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
+const multerS3 = require("multer-s3");
 const path = require("path");
 
-// Use memory storage for now
-const storage = multer.memoryStorage();
+// Configure S3 client for Vultr Object Storage
+const s3Client = new S3Client({
+  endpoint: process.env.VULTR_ENDPOINT || "https://ewr1.vultrobjects.com",
+  region: "ewr1",
+  credentials: {
+    accessKeyId: process.env.VULTR_ACCESS_KEY,
+    secretAccessKey: process.env.VULTR_SECRET_KEY,
+  },
+  forcePathStyle: true,
+});
+
+// Configure multer with Vultr storage
 const upload = multer({
-  storage: storage,
+  storage: multerS3({
+    s3: s3Client,
+    bucket: process.env.VULTR_BUCKET_NAME,
+    acl: "private",
+    contentType: multerS3.AUTO_CONTENT_TYPE,
+    key: function (req, file, cb) {
+      const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+      const ext = path.extname(file.originalname);
+      cb(null, `resumes/${uniqueSuffix}${ext}`);
+    },
+  }),
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB limit
   },
   fileFilter: (req, file, cb) => {
-    try {
-      const allowedTypes = [".pdf", ".doc", ".docx"];
-      const ext = path.extname(file.originalname).toLowerCase();
-      if (allowedTypes.includes(ext)) {
-        cb(null, true);
-      } else {
-        cb(
-          new Error(
-            "Invalid file type. Only PDF and Word documents are allowed."
-          )
-        );
-      }
-    } catch (error) {
-      cb(error);
+    const allowedTypes = [".pdf", ".doc", ".docx"];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (allowedTypes.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(
+        new Error("Invalid file type. Only PDF and Word documents are allowed.")
+      );
     }
   },
 }).single("resume");
-
-// Test route with explicit error handling
-router.post("/test", (req, res) => {
-  upload(req, res, function (err) {
-    if (err instanceof multer.MulterError) {
-      console.error("Multer error:", err);
-      return res.status(400).json({
-        error: true,
-        message: "File upload error",
-        details: err.message,
-      });
-    } else if (err) {
-      console.error("Unknown error:", err);
-      return res.status(500).json({
-        error: true,
-        message: "Error processing request",
-        details: err.message,
-      });
-    }
-
-    try {
-      console.log("Request body:", req.body);
-      console.log("File details:", req.file);
-
-      // Send successful response
-      return res.status(200).json({
-        success: true,
-        message: "Test upload successful",
-        file: req.file
-          ? {
-              originalname: req.file.originalname,
-              size: req.file.size,
-              mimetype: req.file.mimetype,
-            }
-          : null,
-        body: req.body,
-      });
-    } catch (error) {
-      console.error("Error in test route:", error);
-      return res.status(500).json({
-        error: true,
-        message: "Server error processing request",
-        details: error.message,
-      });
-    }
-  });
-});
 
 // Submit application route
 router.post("/", (req, res) => {
@@ -96,7 +65,8 @@ router.post("/", (req, res) => {
 
       await connection.beginTransaction();
 
-      const resumeUrl = req.file ? `temp_${req.file.originalname}` : null;
+      // Store the S3 URL of the uploaded file
+      const resumeUrl = req.file ? req.file.location : null;
 
       const [result] = await connection.execute(
         `INSERT INTO job_applications (
@@ -127,6 +97,7 @@ router.post("/", (req, res) => {
         success: true,
         message: "Application submitted successfully",
         applicationId: result.insertId,
+        resumeUrl: resumeUrl,
       });
     } catch (error) {
       console.error("Database error:", error);
@@ -142,6 +113,47 @@ router.post("/", (req, res) => {
       if (connection) {
         connection.release();
       }
+    }
+  });
+});
+
+// Keep the test route for verification
+router.post("/test", (req, res) => {
+  upload(req, res, function (err) {
+    if (err) {
+      console.error("Test upload error:", err);
+      return res.status(400).json({
+        error: true,
+        message: "File upload error",
+        details: err.message,
+      });
+    }
+
+    try {
+      console.log("Test upload successful");
+      console.log("File details:", req.file);
+      console.log("Form data:", req.body);
+
+      res.status(200).json({
+        success: true,
+        message: "Test upload successful",
+        file: req.file
+          ? {
+              originalname: req.file.originalname,
+              size: req.file.size,
+              location: req.file.location,
+              mimetype: req.file.mimetype,
+            }
+          : null,
+        body: req.body,
+      });
+    } catch (error) {
+      console.error("Error in test route:", error);
+      res.status(500).json({
+        error: true,
+        message: "Server error",
+        details: error.message,
+      });
     }
   });
 });
