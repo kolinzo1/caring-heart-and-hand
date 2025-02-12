@@ -7,6 +7,13 @@ const compression = require("compression");
 const mysql = require("mysql2/promise");
 const rateLimit = require("express-rate-limit");
 const winston = require("winston");
+const fs = require("fs");
+const path = require("path");
+
+const uploadDir = path.join(__dirname, "uploads/resumes");
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
 
 const corsOptions = {
   origin: ["https://caring-heart-and-hand-client.vercel.app"],
@@ -242,6 +249,7 @@ app.use("/api/schedules", require("./routes/scheduleRoutes"));
 app.use("/api/admin/staff", require("./routes/staffMetricsRoutes"));
 app.use("/api/admin/team", require("./routes/teamMemberRoutes"));
 app.use("/careers/positions", require("./routes/jobPositionsRoutes"));
+app.use("/careers/apply", require("./routes/jobApplicationsRoutes"));
 
 // Debug logs
 app.use((req, res, next) => {
