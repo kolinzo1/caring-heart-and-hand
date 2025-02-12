@@ -241,7 +241,7 @@ app.use("/api/blog", require("./routes/blogRoutes"));
 app.use("/api/schedules", require("./routes/scheduleRoutes"));
 app.use("/api/admin/staff", require("./routes/staffMetricsRoutes"));
 app.use("/api/admin/team", require("./routes/teamMemberRoutes"));
-app.use("/api/admin/positions", require("./routes/jobPositionsRoutes"));
+app.use("/api/careers/positions", require("./routes/jobPositionsRoutes"));
 
 // Debug logs
 app.use((req, res, next) => {
