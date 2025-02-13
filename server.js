@@ -249,6 +249,7 @@ app.use("/api/admin/team", require("./routes/teamMemberRoutes"));
 app.use("/careers/positions", require("./routes/jobPositionsRoutes"));
 app.use("/careers/apply", require("./routes/jobApplicationsRoutes"));
 app.use("/api/careers/applications", require("./routes/jobApplicationsRoutes"));
+app.use("/api/careers", require("./routes/jobApplicationsRoutes"));
 
 // Debug logs
 app.use((req, res, next) => {

@@ -9,6 +9,7 @@ const { GetObjectCommand } = require("@aws-sdk/client-s3");
 const stream = require("stream");
 const { promisify } = require("util");
 const pipeline = promisify(stream.pipeline);
+const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
 
 // Configure multer
 const upload = multer({
@@ -93,21 +94,25 @@ router.post("/", (req, res) => {
 router.post("/apply", upload.single("resume"), async (req, res) => {
   const connection = await req.app.get("db").getConnection();
   try {
-    console.log("Received application data:", req.body);
-    console.log("File:", req.file);
+    console.log("Application data received:", req.body);
+    console.log("File data:", req.file);
 
-    // Upload resume to S3
-    const fileKey = `resumes/${Date.now()}-${req.file.originalname}`;
-    const command = new PutObjectCommand({
-      Bucket: process.env.STACKHERO_BUCKET_NAME,
-      Key: fileKey,
-      Body: req.file.buffer,
-      ContentType: req.file.mimetype,
-    });
+    // Upload resume to S3 if file is present
+    let resumeUrl = null;
+    if (req.file) {
+      const fileKey = `resumes/${Date.now()}-${req.file.originalname}`;
+      const command = new PutObjectCommand({
+        Bucket: process.env.STACKHERO_BUCKET_NAME,
+        Key: fileKey,
+        Body: req.file.buffer,
+        ContentType: req.file.mimetype,
+      });
 
-    await s3Client.send(command);
+      await s3Client.send(command);
+      resumeUrl = fileKey;
+    }
 
-    // Save application to database
+    // Insert application into database
     const [result] = await connection.execute(
       `INSERT INTO job_applications (
         position_id,
@@ -125,7 +130,7 @@ router.post("/apply", upload.single("resume"), async (req, res) => {
         req.body.last_name,
         req.body.email,
         req.body.phone,
-        fileKey,
+        resumeUrl,
         req.body.cover_letter,
         "pending",
       ]
@@ -138,7 +143,7 @@ router.post("/apply", upload.single("resume"), async (req, res) => {
   } catch (error) {
     console.error("Error submitting application:", error);
     res.status(500).json({
-      message: "Error submitting application",
+      message: "Failed to submit application",
       error: error.message,
     });
   } finally {
