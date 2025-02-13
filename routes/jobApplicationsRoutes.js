@@ -14,7 +14,7 @@ const pipeline = promisify(stream.pipeline);
 const upload = multer({
   storage: multerS3({
     s3: s3Client,
-    bucket: process.env.STACKHERO_BUCKET_NAME,
+    bucket: "caringheart-disk1",
     acl: "private",
     contentType: multerS3.AUTO_CONTENT_TYPE,
     key: function (req, file, cb) {
