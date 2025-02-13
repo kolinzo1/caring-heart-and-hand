@@ -199,15 +199,39 @@ router.post("/test", (req, res) => {
 });
 
 router.get("/", async (req, res) => {
+  const connection = await req.app.get("db").getConnection();
   try {
-    const [rows] = await req.app
-      .get("db")
-      .query(`SELECT * FROM job_applications ORDER BY created_at DESC`);
+    const [rows] = await connection.execute(`
+        SELECT 
+          ja.*,
+          jp.title as position_title,
+          jp.department
+        FROM job_applications ja
+        LEFT JOIN job_positions jp ON ja.position_id = jp.id
+        ORDER BY ja.created_at DESC
+      `);
 
-    res.json(rows);
+    const applications = rows.map((row) => ({
+      id: row.id,
+      first_name: row.first_name,
+      last_name: row.last_name,
+      position_id: row.position_id,
+      position_title: row.position_title,
+      email: row.email,
+      phone: row.phone,
+      resume_url: row.resume_url,
+      cover_letter: row.cover_letter,
+      status: row.status || "pending",
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+    }));
+
+    res.json(applications);
   } catch (error) {
     console.error("Error fetching applications:", error);
     res.status(500).json({ message: "Error fetching applications" });
+  } finally {
+    connection.release();
   }
 });
 
