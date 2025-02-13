@@ -155,20 +155,20 @@ router.post("/test", (req, res) => {
         details: error.message,
       });
     }
-  })
-};
+  });
+});
 
 router.get("/", async (req, res) => {
-    try {
-      const [rows] = await req.app
-        .get("db")
-        .query(`SELECT * FROM job_applications ORDER BY created_at DESC`);
-  
-      res.json(rows);
-    } catch (error) {
-      console.error("Error fetching applications:", error);
-      res.status(500).json({ message: "Error fetching applications" });
-    }
-  });
+  try {
+    const [rows] = await req.app
+      .get("db")
+      .query(`SELECT * FROM job_applications ORDER BY created_at DESC`);
+
+    res.json(rows);
+  } catch (error) {
+    console.error("Error fetching applications:", error);
+    res.status(500).json({ message: "Error fetching applications" });
+  }
+});
 
 module.exports = router;
