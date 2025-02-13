@@ -10,11 +10,16 @@ const stream = require("stream");
 const { promisify } = require("util");
 const pipeline = promisify(stream.pipeline);
 
-// Configure multer with Vultr storage
+const command = new GetObjectCommand({
+  Bucket: process.env.STACKHERO_MINIO_BUCKET_NAME, // Updated to use Stackhero bucket
+  Key: key,
+});
+
+// Configure multer
 const upload = multer({
   storage: multerS3({
     s3: s3Client,
-    bucket: process.env.VULTR_BUCKET_NAME,
+    bucket: process.env.STACKHERO_BUCKET_NAME,
     acl: "private",
     contentType: multerS3.AUTO_CONTENT_TYPE,
     key: function (req, file, cb) {
