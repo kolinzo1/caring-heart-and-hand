@@ -12,32 +12,11 @@ const pipeline = promisify(stream.pipeline);
 
 // Configure multer
 const upload = multer({
-  storage: multerS3({
-    s3: s3Client,
-    bucket: "caringheart-disk1",
-    acl: "private",
-    contentType: multerS3.AUTO_CONTENT_TYPE,
-    key: function (req, file, cb) {
-      const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-      const ext = path.extname(file.originalname);
-      cb(null, `resumes/${uniqueSuffix}${ext}`);
-    },
-  }),
+  storage: multer.memoryStorage(),
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB limit
   },
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = [".pdf", ".doc", ".docx"];
-    const ext = path.extname(file.originalname).toLowerCase();
-    if (allowedTypes.includes(ext)) {
-      cb(null, true);
-    } else {
-      cb(
-        new Error("Invalid file type. Only PDF and Word documents are allowed.")
-      );
-    }
-  },
-}).single("resume");
+});
 
 // Submit application route
 router.post("/", (req, res) => {
@@ -109,6 +88,62 @@ router.post("/", (req, res) => {
       }
     }
   });
+});
+
+router.post("/apply", upload.single("resume"), async (req, res) => {
+  const connection = await req.app.get("db").getConnection();
+  try {
+    console.log("Received application data:", req.body);
+    console.log("File:", req.file);
+
+    // Upload resume to S3
+    const fileKey = `resumes/${Date.now()}-${req.file.originalname}`;
+    const command = new PutObjectCommand({
+      Bucket: process.env.STACKHERO_BUCKET_NAME,
+      Key: fileKey,
+      Body: req.file.buffer,
+      ContentType: req.file.mimetype,
+    });
+
+    await s3Client.send(command);
+
+    // Save application to database
+    const [result] = await connection.execute(
+      `INSERT INTO job_applications (
+        position_id,
+        first_name,
+        last_name,
+        email,
+        phone,
+        resume_url,
+        cover_letter,
+        status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        req.body.position_id,
+        req.body.first_name,
+        req.body.last_name,
+        req.body.email,
+        req.body.phone,
+        fileKey,
+        req.body.cover_letter,
+        "pending",
+      ]
+    );
+
+    res.status(201).json({
+      message: "Application submitted successfully",
+      applicationId: result.insertId,
+    });
+  } catch (error) {
+    console.error("Error submitting application:", error);
+    res.status(500).json({
+      message: "Error submitting application",
+      error: error.message,
+    });
+  } finally {
+    connection.release();
+  }
 });
 
 // Keep the test route for verification
