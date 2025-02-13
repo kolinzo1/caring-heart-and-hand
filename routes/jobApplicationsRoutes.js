@@ -120,56 +120,38 @@ router.post("/", (req, res) => {
 router.get("/download/:id", async (req, res) => {
   const connection = await req.app.get("db").getConnection();
   try {
-    // First, verify the application and get the resume URL
+    console.log("Fetching resume for id:", req.params.id);
+
+    // Get the resume URL from database
     const [rows] = await connection.execute(
       "SELECT resume_url FROM job_applications WHERE id = ?",
       [req.params.id]
     );
 
     if (!rows.length || !rows[0].resume_url) {
+      console.log("No resume found for id:", req.params.id);
       return res.status(404).json({ message: "Resume not found" });
     }
 
-    // Get the file key from the resume_url
-    const resumeKey = rows[0].resume_url.split("/").pop();
+    const resumeUrl = rows[0].resume_url;
+    console.log("Resume URL:", resumeUrl);
 
-    // Get file from Vultr
-    const command = new GetObjectCommand({
-      Bucket: process.env.VULTR_BUCKET_NAME,
-      Key: `resumes/${resumeKey}`, // Make sure the path matches your upload path
-    });
-
-    try {
-      const { Body, ContentType, ContentLength } = await s3Client.send(command);
-
-      // Set appropriate headers
-      res.setHeader("Content-Type", ContentType || "application/octet-stream");
-      res.setHeader("Content-Length", ContentLength);
-      res.setHeader(
-        "Content-Disposition",
-        `attachment; filename="${resumeKey}"`
-      );
-
-      // Stream the file
-      Body.pipe(res);
-    } catch (s3Error) {
-      console.error("S3 Error:", s3Error);
-      res.status(500).json({
-        message: "Error accessing file storage",
-        error: s3Error.message,
-      });
-    }
+    // For testing, send a dummy PDF
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="resume-${req.params.id}.pdf"`
+    );
+    res.sendFile(resumeUrl, { root: "./uploads/resumes" });
   } catch (error) {
     console.error("Error downloading resume:", error);
-    res.status(500).json({
-      message: "Error downloading resume",
-      error: error.message,
-    });
+    res
+      .status(500)
+      .json({ message: "Error downloading resume", error: error.message });
   } finally {
     connection.release();
   }
 });
-
 // Keep the test route for verification
 router.post("/test", (req, res) => {
   upload(req, res, function (err) {
