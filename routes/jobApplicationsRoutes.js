@@ -117,6 +117,46 @@ router.post("/", (req, res) => {
   });
 });
 
+router.get("/download/:id", async (req, res) => {
+  const connection = await req.app.get("db").getConnection();
+  try {
+    // Get resume URL from database
+    const [rows] = await connection.execute(
+      "SELECT resume_url FROM job_applications WHERE id = ?",
+      [req.params.id]
+    );
+
+    if (!rows.length || !rows[0].resume_url) {
+      return res.status(404).json({ message: "Resume not found" });
+    }
+
+    const resumeKey = rows[0].resume_url;
+
+    // Get file from Vultr
+    const command = new GetObjectCommand({
+      Bucket: process.env.VULTR_BUCKET_NAME,
+      Key: resumeKey,
+    });
+
+    const { Body, ContentType } = await s3Client.send(command);
+
+    // Set response headers
+    res.setHeader("Content-Type", ContentType);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${resumeKey.split("/").pop()}"`
+    );
+
+    // Stream the file to response
+    Body.pipe(res);
+  } catch (error) {
+    console.error("Error downloading resume:", error);
+    res.status(500).json({ message: "Error downloading resume" });
+  } finally {
+    connection.release();
+  }
+});
+
 // Keep the test route for verification
 router.post("/test", (req, res) => {
   upload(req, res, function (err) {
