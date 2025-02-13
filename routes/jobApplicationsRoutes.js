@@ -1,24 +1,14 @@
 const express = require("express");
 const router = express.Router();
 const multer = require("multer");
-const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
+const s3Client = require("../config/s3");
+// const { PutObjectCommand } = require("@aws-sdk/client-s3");
 const multerS3 = require("multer-s3");
 const path = require("path");
-const { S3Client, GetObjectCommand } = require("@aws-sdk/client-s3");
+const { GetObjectCommand } = require("@aws-sdk/client-s3");
 const stream = require("stream");
 const { promisify } = require("util");
 const pipeline = promisify(stream.pipeline);
-
-// Configure S3 client for Vultr Object Storage
-const s3Client = new S3Client({
-  endpoint: process.env.VULTR_ENDPOINT || "https://ewr1.vultrobjects.com",
-  region: "ewr1",
-  credentials: {
-    accessKeyId: process.env.VULTR_ACCESS_KEY,
-    secretAccessKey: process.env.VULTR_SECRET_KEY,
-  },
-  forcePathStyle: true,
-});
 
 // Configure multer with Vultr storage
 const upload = multer({
@@ -184,7 +174,6 @@ router.get("/download/:id", async (req, res) => {
     const key = resumeUrl.split("com/")[1];
     console.log("Fetching from Vultr with key:", key);
 
-    // Get the file from Vultr
     const command = new GetObjectCommand({
       Bucket: process.env.VULTR_BUCKET_NAME,
       Key: key,
@@ -192,7 +181,6 @@ router.get("/download/:id", async (req, res) => {
 
     const { Body, ContentType, ContentLength } = await s3Client.send(command);
 
-    // Set response headers
     res.setHeader("Content-Type", ContentType || "application/pdf");
     res.setHeader("Content-Length", ContentLength);
     res.setHeader(
@@ -200,15 +188,12 @@ router.get("/download/:id", async (req, res) => {
       `attachment; filename="resume-${req.params.id}.pdf"`
     );
 
-    // Stream the file to response
     await pipeline(Body, res);
   } catch (error) {
     console.error("Error downloading resume:", error);
-    // Send a more detailed error response
     res.status(500).json({
       message: "Error downloading resume",
       error: error.message,
-      details: error.stack,
     });
   } finally {
     connection.release();
