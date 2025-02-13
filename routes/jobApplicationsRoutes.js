@@ -156,6 +156,44 @@ router.post("/test", (req, res) => {
       });
     }
   });
+
+  router.get("/", async (req, res) => {
+    const connection = await req.app.get("db").getConnection();
+    try {
+      const [rows] = await connection.execute(`
+        SELECT 
+          ja.*,
+          jp.title as position_title,
+          jp.department
+        FROM job_applications ja
+        LEFT JOIN job_positions jp ON ja.position_id = jp.id
+        ORDER BY ja.created_at DESC
+      `);
+
+      // Transform the data to match the frontend structure
+      const applications = rows.map((row) => ({
+        id: row.id,
+        applicant: {
+          name: `${row.first_name} ${row.last_name}`,
+          email: row.email,
+          phone: row.phone,
+        },
+        position: row.position_title,
+        department: row.department,
+        submittedAt: row.created_at,
+        status: row.status,
+        resume: row.resume_url,
+        cover_letter: row.cover_letter,
+      }));
+
+      res.json(applications);
+    } catch (error) {
+      console.error("Error fetching applications:", error);
+      res.status(500).json({ message: "Error fetching applications" });
+    } finally {
+      connection.release();
+    }
+  });
 });
 
 module.exports = router;
