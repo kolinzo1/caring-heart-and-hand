@@ -10,11 +10,6 @@ const stream = require("stream");
 const { promisify } = require("util");
 const pipeline = promisify(stream.pipeline);
 
-const command = new GetObjectCommand({
-  Bucket: process.env.STACKHERO_MINIO_BUCKET_NAME, // Updated to use Stackhero bucket
-  Key: key,
-});
-
 // Configure multer
 const upload = multer({
   storage: multerS3({
@@ -166,26 +161,26 @@ router.get("/download/:id", async (req, res) => {
     );
 
     if (!rows.length || !rows[0].resume_url) {
+      console.log("No resume found for id:", req.params.id);
       return res.status(404).json({ message: "Resume not found" });
     }
 
     const resumeUrl = rows[0].resume_url;
-    console.log("Found resume URL:", resumeUrl);
-
-    // Get the file key from the resume_url
-    const fileKey = resumeUrl.split("/").pop();
-    console.log("File key:", fileKey);
+    console.log("Resume URL:", resumeUrl);
 
     const command = new GetObjectCommand({
       Bucket: process.env.STACKHERO_BUCKET_NAME,
-      Key: fileKey,
+      Key: resumeUrl, // Use the full URL as the key for now
     });
 
     const { Body, ContentType, ContentLength } = await s3Client.send(command);
 
     res.setHeader("Content-Type", ContentType || "application/pdf");
     res.setHeader("Content-Length", ContentLength);
-    res.setHeader("Content-Disposition", `attachment; filename="${fileKey}"`);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="resume-${req.params.id}${path.extname(resumeUrl)}"`
+    );
 
     Body.pipe(res);
   } catch (error) {
@@ -193,15 +188,15 @@ router.get("/download/:id", async (req, res) => {
     res.status(500).json({
       message: "Error downloading resume",
       error: error.message,
+      details: {
+        bucket: process.env.STACKHERO_BUCKET_NAME,
+        id: req.params.id,
+      },
     });
   } finally {
-    if (connection) {
-      connection.release();
-    }
+    connection.release();
   }
 });
-
-module.exports = router;
 
 router.get("/", async (req, res) => {
   const connection = await req.app.get("db").getConnection();
