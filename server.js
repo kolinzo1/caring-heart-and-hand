@@ -16,7 +16,10 @@ if (!fs.existsSync(uploadDir)) {
 }
 
 const corsOptions = {
-  origin: ["https://caring-heart-and-hand-client.vercel.app"],
+  origin: [
+    "https://caring-heart-and-hand-client.vercel.app",
+    "http://localhost:3000", // for local development
+  ],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
@@ -50,12 +53,7 @@ const pool = mysql.createPool({
   queueLimit: 0,
 });
 
-app.use(
-  cors({
-    origin: "https://caring-heart-and-hand-client.vercel.app",
-    credentials: true,
-  })
-);
+app.use(cors(corsOptions));
 
 if (process.env.NODE_ENV !== "production") {
   logger.add(
@@ -250,7 +248,7 @@ app.use("/api/admin/staff", require("./routes/staffMetricsRoutes"));
 app.use("/api/admin/team", require("./routes/teamMemberRoutes"));
 app.use("/careers/positions", require("./routes/jobPositionsRoutes"));
 app.use("/careers/apply", require("./routes/jobApplicationsRoutes"));
-app.use("/api/careers/applications", require("./routes/jobApplicationsRoutes"));
+app.use("/api/admin/applications", require("./routes/jobApplicationsRoutes"));
 
 // Debug logs
 app.use((req, res, next) => {
