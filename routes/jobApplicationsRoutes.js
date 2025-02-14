@@ -11,6 +11,17 @@ const { promisify } = require("util");
 const pipeline = promisify(stream.pipeline);
 const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
 
+// Configure S3 client for Vultr
+const s3Client = new S3Client({
+  endpoint: "https://ewr1.vultrobjects.com",
+  region: "ewr1",
+  credentials: {
+    accessKeyId: process.env.VULTR_ACCESS_KEY,
+    secretAccessKey: process.env.VULTR_SECRET_KEY,
+  },
+  forcePathStyle: true,
+});
+
 // Configure multer
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -97,10 +108,20 @@ router.post("/apply", upload.single("resume"), async (req, res) => {
     console.log("Application data received:", req.body);
     console.log("File data:", req.file);
 
-    // For now, just store the original filename
-    const resumeUrl = req.file ? req.file.originalname : null;
+    let resumeUrl = null;
+    if (req.file) {
+      const fileKey = `resumes/${Date.now()}-${req.file.originalname}`;
+      const command = new PutObjectCommand({
+        Bucket: process.env.VULTR_BUCKET_NAME,
+        Key: fileKey,
+        Body: req.file.buffer,
+        ContentType: req.file.mimetype,
+      });
 
-    // Insert application into database
+      await s3Client.send(command);
+      resumeUrl = `https://ewr1.vultrobjects.com/${process.env.VULTR_BUCKET_NAME}/${fileKey}`;
+    }
+
     const [result] = await connection.execute(
       `INSERT INTO job_applications (
         position_id,
@@ -140,6 +161,8 @@ router.post("/apply", upload.single("resume"), async (req, res) => {
     }
   }
 });
+
+module.exports = router;
 
 // Keep the test route for verification
 router.post("/test", (req, res) => {
