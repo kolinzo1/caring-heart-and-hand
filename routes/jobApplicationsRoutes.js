@@ -162,8 +162,6 @@ router.post("/apply", upload.single("resume"), async (req, res) => {
   }
 });
 
-module.exports = router;
-
 // Keep the test route for verification
 router.post("/test", (req, res) => {
   upload(req, res, function (err) {
