@@ -195,44 +195,51 @@ router.post("/test", (req, res) => {
 router.get("/download/:id", async (req, res) => {
   const connection = await req.app.get("db").getConnection();
   try {
+    console.log("Downloading resume for id:", req.params.id);
+
+    // Get resume URL from database
     const [rows] = await connection.execute(
       "SELECT resume_url FROM job_applications WHERE id = ?",
       [req.params.id]
     );
 
     if (!rows.length || !rows[0].resume_url) {
-      console.log("No resume found for id:", req.params.id);
       return res.status(404).json({ message: "Resume not found" });
     }
 
     const resumeUrl = rows[0].resume_url;
-    console.log("Resume URL:", resumeUrl);
+    // Extract key from full URL
+    const fileKey = resumeUrl.split(`${process.env.VULTR_BUCKET_NAME}/`)[1];
+
+    console.log("Fetching file with key:", fileKey);
 
     const command = new GetObjectCommand({
-      Bucket: process.env.STACKHERO_BUCKET_NAME,
-      Key: resumeUrl, // Use the full URL as the key for now
+      Bucket: process.env.VULTR_BUCKET_NAME,
+      Key: fileKey,
     });
 
-    const { Body, ContentType, ContentLength } = await s3Client.send(command);
+    try {
+      const { Body, ContentType, ContentLength } = await s3Client.send(command);
 
-    res.setHeader("Content-Type", ContentType || "application/pdf");
-    res.setHeader("Content-Length", ContentLength);
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="resume-${req.params.id}${path.extname(resumeUrl)}"`
-    );
+      res.setHeader("Content-Type", ContentType || "application/octet-stream");
+      res.setHeader("Content-Length", ContentLength);
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${fileKey.split("/").pop()}"`
+      );
 
-    Body.pipe(res);
+      // Stream the file to response
+      Body.pipe(res);
+    } catch (s3Error) {
+      console.error("S3 download error:", s3Error);
+      res.status(500).json({
+        message: "Error downloading file",
+        error: s3Error.message,
+      });
+    }
   } catch (error) {
     console.error("Error downloading resume:", error);
-    res.status(500).json({
-      message: "Error downloading resume",
-      error: error.message,
-      details: {
-        bucket: process.env.STACKHERO_BUCKET_NAME,
-        id: req.params.id,
-      },
-    });
+    res.status(500).json({ message: "Error downloading resume" });
   } finally {
     connection.release();
   }
