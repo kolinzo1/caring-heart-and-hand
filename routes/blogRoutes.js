@@ -3,6 +3,23 @@ const router = express.Router();
 const { authMiddleware } = require("../middleware/authMiddleware");
 const { adminMiddleware } = require("../middleware/adminMiddleware");
 
+const [posts] = await connection.execute(
+  `SELECT 
+    bp.id,
+    bp.title,
+    bp.excerpt,
+    bp.content,
+    bp.category,
+    bp.published_at,
+    bp.slug,
+    u.name as author_name
+  FROM blog_posts bp
+  LEFT JOIN users u ON bp.author_id = u.id
+  WHERE bp.status = 'published'
+  ORDER BY bp.published_at DESC
+  LIMIT ? OFFSET ?`,
+  [limit, offset]
+);
 // Public routes
 router.get("/posts", async (req, res) => {
   try {
