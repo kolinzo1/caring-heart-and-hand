@@ -11,17 +11,6 @@ const { promisify } = require("util");
 const pipeline = promisify(stream.pipeline);
 const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
 
-// Configure S3 client for Vultr
-const s3Client = new S3Client({
-  endpoint: "https://ewr1.vultrobjects.com",
-  region: "ewr1",
-  credentials: {
-    accessKeyId: process.env.VULTR_ACCESS_KEY,
-    secretAccessKey: process.env.VULTR_SECRET_KEY,
-  },
-  forcePathStyle: true,
-});
-
 // Configure multer
 const upload = multer({
   storage: multer.memoryStorage(),
