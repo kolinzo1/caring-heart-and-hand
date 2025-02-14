@@ -288,20 +288,20 @@ router.get("/", async (req, res) => {
     const limit = parseInt(req.query.limit) || 6;
     const offset = (page - 1) * limit;
 
-    // Get posts without user join
+    // Get posts
     const [posts] = await connection.execute(
       `SELECT 
-        bp.id,
-        bp.title,
-        bp.excerpt,
-        bp.content,
-        bp.category,
-        bp.published_at,
-        bp.slug,
-        bp.created_at
-      FROM blog_posts bp
-      WHERE bp.status = 'published'
-      ORDER BY bp.created_at DESC
+        id,
+        title,
+        excerpt,
+        content,
+        category,
+        published_at,
+        slug,
+        created_at
+      FROM blog_posts
+      WHERE status = 'published'
+      ORDER BY created_at DESC
       LIMIT ? OFFSET ?`,
       [limit, offset]
     );
