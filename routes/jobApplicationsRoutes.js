@@ -97,20 +97,8 @@ router.post("/apply", upload.single("resume"), async (req, res) => {
     console.log("Application data received:", req.body);
     console.log("File data:", req.file);
 
-    // Upload resume to S3 if file is present
-    let resumeUrl = null;
-    if (req.file) {
-      const fileKey = `resumes/${Date.now()}-${req.file.originalname}`;
-      const command = new PutObjectCommand({
-        Bucket: process.env.STACKHERO_BUCKET_NAME,
-        Key: fileKey,
-        Body: req.file.buffer,
-        ContentType: req.file.mimetype,
-      });
-
-      await s3Client.send(command);
-      resumeUrl = fileKey;
-    }
+    // For now, just store the original filename
+    const resumeUrl = req.file ? req.file.originalname : null;
 
     // Insert application into database
     const [result] = await connection.execute(
@@ -147,7 +135,9 @@ router.post("/apply", upload.single("resume"), async (req, res) => {
       error: error.message,
     });
   } finally {
-    connection.release();
+    if (connection) {
+      connection.release();
+    }
   }
 });
 
