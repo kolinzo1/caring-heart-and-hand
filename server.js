@@ -257,6 +257,12 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use((req, res, next) => {
+  console.log("Request URL:", req.url);
+  console.log("Request Method:", req.method);
+  next();
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   logger.error(err.stack);

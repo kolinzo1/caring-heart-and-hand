@@ -4,6 +4,10 @@ const { authMiddleware } = require("../middleware/authMiddleware");
 const { adminMiddleware } = require("../middleware/adminMiddleware");
 
 // Public routes
+
+router.get("/test", (req, res) => {
+  res.json({ message: "Blog route working" });
+});
 router.get("/posts", async (req, res) => {
   try {
     const { page = 1, limit = 10, category, status = "published" } = req.query;
@@ -282,51 +286,22 @@ router.post(
 router.get("/", async (req, res) => {
   const connection = await req.app.get("db").getConnection();
   try {
-    console.log("Fetching blog posts with params:", req.query);
+    console.log("Fetching blog posts");
 
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 6;
-    const offset = (page - 1) * limit;
-
-    // Get posts
+    // Simple query to test
     const [posts] = await connection.execute(
-      `SELECT 
-        id,
-        title,
-        excerpt,
-        content,
-        category,
-        published_at,
-        slug,
-        created_at
-      FROM blog_posts
-      WHERE status = 'published'
-      ORDER BY created_at DESC
-      LIMIT ? OFFSET ?`,
-      [limit, offset]
+      "SELECT * FROM blog_posts LIMIT 10"
     );
 
-    // Format the posts
-    const formattedPosts = posts.map((post) => ({
-      id: post.id,
-      title: post.title,
-      excerpt: post.excerpt || "",
-      content: post.content,
-      category: post.category || "Uncategorized",
-      date: new Date(post.published_at || post.created_at).toLocaleDateString(),
-      readTime: `${Math.ceil(
-        (post.content?.split(" ").length || 0) / 200
-      )} min read`,
-      slug: post.slug,
-    }));
+    console.log("Found posts:", posts);
 
     res.json({
-      posts: formattedPosts,
-      currentPage: page,
-      totalPages: Math.ceil(posts.length / limit),
+      posts: posts,
+      totalPages: 1,
+      currentPage: 1,
     });
   } catch (error) {
-    console.error("Error fetching blog posts:", error);
+    console.error("Error:", error);
     res.status(500).json({
       message: "Error fetching blog posts",
       error: error.message,
