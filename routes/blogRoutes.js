@@ -3,23 +3,6 @@ const router = express.Router();
 const { authMiddleware } = require("../middleware/authMiddleware");
 const { adminMiddleware } = require("../middleware/adminMiddleware");
 
-const [posts] = await connection.execute(
-  `SELECT 
-    bp.id,
-    bp.title,
-    bp.excerpt,
-    bp.content,
-    bp.category,
-    bp.published_at,
-    bp.slug,
-    u.name as author_name
-  FROM blog_posts bp
-  LEFT JOIN users u ON bp.author_id = u.id
-  WHERE bp.status = 'published'
-  ORDER BY bp.published_at DESC
-  LIMIT ? OFFSET ?`,
-  [limit, offset]
-);
 // Public routes
 router.get("/posts", async (req, res) => {
   try {
@@ -295,5 +278,62 @@ router.post(
     }
   }
 );
+
+router.get("/", async (req, res) => {
+  const connection = await req.app.get("db").getConnection();
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 6;
+    const offset = (page - 1) * limit;
+
+    // Get total count
+    const [countResult] = await connection.execute(
+      "SELECT COUNT(*) as total FROM blog_posts WHERE status = 'published'"
+    );
+    const total = countResult[0].total;
+
+    // Get posts for current page
+    const [posts] = await connection.execute(
+      `SELECT 
+        bp.id,
+        bp.title,
+        bp.excerpt,
+        bp.content,
+        bp.category,
+        bp.published_at,
+        bp.slug,
+        u.name as author_name
+      FROM blog_posts bp
+      LEFT JOIN users u ON bp.author_id = u.id
+      WHERE bp.status = 'published'
+      ORDER BY bp.published_at DESC
+      LIMIT ? OFFSET ?`,
+      [limit, offset]
+    );
+
+    // Format dates and add read time
+    const formattedPosts = posts.map((post) => ({
+      ...post,
+      date: new Date(post.published_at).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      }),
+      readTime: `${Math.ceil(post.excerpt.split(" ").length / 200)} min read`,
+    }));
+
+    res.json({
+      posts: formattedPosts,
+      totalPages: Math.ceil(total / limit),
+      currentPage: page,
+      totalPosts: total,
+    });
+  } catch (error) {
+    console.error("Error fetching blog posts:", error);
+    res.status(500).json({ message: "Error fetching blog posts" });
+  } finally {
+    connection.release();
+  }
+});
 
 module.exports = router;
