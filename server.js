@@ -164,6 +164,7 @@ app.use(helmet.xssFilter());
 app.use(cors(corsOptions));
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Health check endpoint
 app.get("/health", async (req, res) => {
@@ -251,6 +252,12 @@ app.use("/careers/apply", require("./routes/jobApplicationsRoutes"));
 app.use("/api/careers/applications", require("./routes/jobApplicationsRoutes"));
 app.use("/api/careers", require("./routes/jobApplicationsRoutes"));
 app.use("/api/care-requests", require("./routes/careRequests"));
+
+// Add a simple test endpoint for care requests
+app.get("/api/care-requests/test", (req, res) => {
+  console.log("Care requests test endpoint hit");
+  res.json({ status: "success", message: "Care requests route is working" });
+});
 
 // Debug logs
 app.use((req, res, next) => {
