@@ -15,30 +15,36 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
+// Define allowed origins
+const allowedOrigins = [
+  "https://caring-heart-and-hand-client.vercel.app",
+  "https://caring-heart-and-hand-client-d2hazusfv-kolinzo1s-projects.vercel.app",
+  "https://caring-heart-and-hand-client.vercel.app",
+  "http://localhost:3000",
+];
+
+// CORS configuration
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests from these domains
-    const allowedOrigins = [
-      "https://caring-heart-and-hand-client.vercel.app",
-      "https://caring-heart-and-hand-client-d2hazusfv-kolinzo1s-projects.vercel.app",
-      "https://caring-heart-and-hand-client.vercel.app",
-      undefined, // Allow requests with no origin (like mobile apps, curl, etc.)
-      "http://localhost:3000",
-    ];
+    // Allow requests with no origin (like mobile apps, curl, postman)
+    if (!origin) return callback(null, true);
 
-    if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
+    if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
       console.log("Blocked origin:", origin);
-      callback(new Error("Not allowed by CORS"));
+      callback(null, false);
     }
   },
-  methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
   credentials: true,
-  preflightContinue: false,
-  optionsSuccessStatus: 204,
+  optionsSuccessStatus: 200,
 };
+
+// Apply CORS middleware
+app.use(cors(corsOptions));
+
 // Initialize logger
 const logger = winston.createLogger({
   level: process.env.NODE_ENV === "production" ? "info" : "debug",
@@ -105,47 +111,28 @@ app.get("/health", (req, res) => {
   res.json({ status: "ok" });
 });
 
+// Add logging
 app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  res.header(
-    "Access-Control-Allow-Headers",
-    "Origin, X-Requested-With, Content-Type, Accept, Authorization"
+  res.setHeader(
+    "Access-Control-Allow-Origin",
+    "https://caring-heart-and-hand-client.vercel.app"
   );
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, DELETE, OPTIONS"
+  );
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.setHeader("Access-Control-Allow-Credentials", "true");
 
+  // Handle preflight requests
   if (req.method === "OPTIONS") {
-    return res.sendStatus(200);
+    return res.status(200).json({
+      status: "success",
+    });
   }
 
   next();
 });
-
-// Add logging
-// app.use((req, res, next) => {
-//   const allowedOrigins = [
-//     "https://caring-heart-and-hand-client.vercel.app",
-//     "https://caring-heart-and-hand-client-d2hazusfv-kolinzo1s-projects.vercel.app",
-//     "http://localhost:3000",
-//   ];
-//
-//   const origin = req.headers.origin;
-//   if (allowedOrigins.includes(origin)) {
-//     res.setHeader("Access-Control-Allow-Origin", origin);
-//   }
-//
-//   res.setHeader(
-//     "Access-Control-Allow-Methods",
-//     "GET, POST, PUT, DELETE, OPTIONS"
-//   );
-//   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-//   res.setHeader("Access-Control-Allow-Credentials", "true");
-//
-//   if (req.method === "OPTIONS") {
-//     return res.status(200).json({ status: "success" });
-//   }
-//
-//   next();
-// });
 
 // Compression middleware - add this before other middleware
 app.use(
@@ -193,12 +180,7 @@ app.use(helmet.permittedCrossDomainPolicies());
 app.use(helmet.referrerPolicy());
 app.use(helmet.xssFilter());
 
-// CORS configuration
-app.use(cors(corsOptions));
-app.options("*", cors(corsOptions));
-
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
 // Health check endpoint
 app.get("/health", async (req, res) => {
@@ -285,13 +267,6 @@ app.use("/careers/positions", require("./routes/jobPositionsRoutes"));
 app.use("/careers/apply", require("./routes/jobApplicationsRoutes"));
 app.use("/api/careers/applications", require("./routes/jobApplicationsRoutes"));
 app.use("/api/careers", require("./routes/jobApplicationsRoutes"));
-app.use("/api/care-requests", require("./routes/careRequests"));
-
-// Add a simple test endpoint for care requests
-app.get("/api/care-requests/test", (req, res) => {
-  console.log("Care requests test endpoint hit");
-  res.json({ status: "success", message: "Care requests route is working" });
-});
 
 // Debug logs
 app.use((req, res, next) => {
