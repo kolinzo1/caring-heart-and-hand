@@ -33,7 +33,7 @@ router.get("/dashboard", async (req, res) => {
 
     // Get active requests
     const [requestCount] = await db.query(
-      "SELECT COUNT(*) as count FROM care_requests WHERE status = 'pending'"
+      "SELECT COUNT(*) as count FROM care_requests WHERE status = 'new'"
     );
 
     // Get total revenue (example query)
