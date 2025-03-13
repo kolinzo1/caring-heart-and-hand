@@ -109,7 +109,7 @@ router.get("/", async (req, res) => {
 });
 
 // Update care request status
-router.put("/:id/status", authMiddleware, async (req, res) => {
+router.put("/:id/status", async (req, res) => {
   try {
     const pool = req.app.get("db");
     const { id } = req.params;
