@@ -16,15 +16,28 @@ if (!fs.existsSync(uploadDir)) {
 }
 
 const corsOptions = {
-  origin: [
-    "https://caring-heart-and-hand-client.vercel.app",
-    "https://caring-heart-and-hand-client-d2hazusfv-kolinzo1s-projects.vercel.app",
-    "http://localhost:3000", // for local development
-  ],
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  origin: function (origin, callback) {
+    // Allow requests from these domains
+    const allowedOrigins = [
+      "https://caring-heart-and-hand-client.vercel.app",
+      "https://caring-heart-and-hand-client-d2hazusfv-kolinzo1s-projects.vercel.app",
+      "https://caring-heart-and-hand-client.vercel.app",
+      undefined, // Allow requests with no origin (like mobile apps, curl, etc.)
+      "http://localhost:3000",
+    ];
+
+    if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
+      callback(null, true);
+    } else {
+      console.log("Blocked origin:", origin);
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
   credentials: true,
-  optionsSuccessStatus: 200,
+  preflightContinue: false,
+  optionsSuccessStatus: 204,
 };
 // Initialize logger
 const logger = winston.createLogger({
@@ -93,31 +106,31 @@ app.get("/health", (req, res) => {
 });
 
 // Add logging
-app.use((req, res, next) => {
-  const allowedOrigins = [
-    "https://caring-heart-and-hand-client.vercel.app",
-    "https://caring-heart-and-hand-client-d2hazusfv-kolinzo1s-projects.vercel.app",
-    "http://localhost:3000",
-  ];
-
-  const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin)) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
-  }
-
-  res.setHeader(
-    "Access-Control-Allow-Methods",
-    "GET, POST, PUT, DELETE, OPTIONS"
-  );
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  res.setHeader("Access-Control-Allow-Credentials", "true");
-
-  if (req.method === "OPTIONS") {
-    return res.status(200).json({ status: "success" });
-  }
-
-  next();
-});
+// app.use((req, res, next) => {
+//   const allowedOrigins = [
+//     "https://caring-heart-and-hand-client.vercel.app",
+//     "https://caring-heart-and-hand-client-d2hazusfv-kolinzo1s-projects.vercel.app",
+//     "http://localhost:3000",
+//   ];
+//
+//   const origin = req.headers.origin;
+//   if (allowedOrigins.includes(origin)) {
+//     res.setHeader("Access-Control-Allow-Origin", origin);
+//   }
+//
+//   res.setHeader(
+//     "Access-Control-Allow-Methods",
+//     "GET, POST, PUT, DELETE, OPTIONS"
+//   );
+//   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+//   res.setHeader("Access-Control-Allow-Credentials", "true");
+//
+//   if (req.method === "OPTIONS") {
+//     return res.status(200).json({ status: "success" });
+//   }
+//
+//   next();
+// });
 
 // Compression middleware - add this before other middleware
 app.use(
