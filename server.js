@@ -14,7 +14,7 @@ const uploadDir = path.join(__dirname, "uploads/resumes");
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
-
+const corsMiddleware = require("./middleware/corsMiddleware");
 // Define allowed origins
 const allowedOrigins = [
   "https://caring-heart-and-hand-client.vercel.app",
@@ -41,6 +41,8 @@ const corsOptions = {
   credentials: true,
   optionsSuccessStatus: 200,
 };
+
+app.use(corsMiddleware);
 
 // Apply CORS middleware
 app.use(cors(corsOptions));

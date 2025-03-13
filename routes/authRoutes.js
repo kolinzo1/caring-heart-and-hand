@@ -9,8 +9,9 @@ const loginValidation = [
   check("email", "Please include a valid email").isEmail(),
   check("password", "Password is required").exists(),
 ];
+const corsMiddleware = require("../middleware/corsMiddleware");
 
-router.post("/login", async (req, res) => {
+router.post("/login", corsMiddleware, async (req, res) => {
   try {
     const { email, password } = req.body;
 
