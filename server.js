@@ -18,6 +18,7 @@ if (!fs.existsSync(uploadDir)) {
 const corsOptions = {
   origin: [
     "https://caring-heart-and-hand-client.vercel.app",
+    "https://caring-heart-and-hand-client-d2hazusfv-kolinzo1s-projects.vercel.app",
     "http://localhost:3000", // for local development
   ],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
