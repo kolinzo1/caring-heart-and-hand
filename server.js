@@ -94,10 +94,17 @@ app.get("/health", (req, res) => {
 
 // Add logging
 app.use((req, res, next) => {
-  res.setHeader(
-    "Access-Control-Allow-Origin",
-    "https://caring-heart-and-hand-client.vercel.app"
-  );
+  const allowedOrigins = [
+    "https://caring-heart-and-hand-client.vercel.app",
+    "https://caring-heart-and-hand-client-d2hazusfv-kolinzo1s-projects.vercel.app",
+    "http://localhost:3000",
+  ];
+
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  }
+
   res.setHeader(
     "Access-Control-Allow-Methods",
     "GET, POST, PUT, DELETE, OPTIONS"
@@ -105,11 +112,8 @@ app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
   res.setHeader("Access-Control-Allow-Credentials", "true");
 
-  // Handle preflight requests
   if (req.method === "OPTIONS") {
-    return res.status(200).json({
-      status: "success",
-    });
+    return res.status(200).json({ status: "success" });
   }
 
   next();
