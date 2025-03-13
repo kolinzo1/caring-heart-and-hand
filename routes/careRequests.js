@@ -108,4 +108,36 @@ router.get("/", async (req, res) => {
   }
 });
 
+// Update care request status
+router.put("/:id/status", authMiddleware, async (req, res) => {
+  try {
+    const pool = req.app.get("db");
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (
+      !status ||
+      !["new", "in_progress", "assigned", "completed", "canceled"].includes(
+        status
+      )
+    ) {
+      return res.status(400).json({ message: "Invalid status value" });
+    }
+
+    const [result] = await pool.query(
+      "UPDATE care_requests SET status = ? WHERE id = ?",
+      [status, id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Care request not found" });
+    }
+
+    res.json({ message: "Status updated successfully" });
+  } catch (error) {
+    console.error("Error updating care request status:", error);
+    res.status(500).json({ message: "Error updating status" });
+  }
+});
+
 module.exports = router;
