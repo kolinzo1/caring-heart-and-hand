@@ -115,11 +115,12 @@ router.put("/:id/status", async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
 
+    // Add some debug logging
+    console.log(`Updating request ${id} status to: ${status}`);
+
     if (
       !status ||
-      !["new", "in_progress", "assigned", "completed", "canceled"].includes(
-        status
-      )
+      !["new", "contacted", "scheduled", "declined"].includes(status)
     ) {
       return res.status(400).json({ message: "Invalid status value" });
     }
