@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const CareRequest = require("../models/CareRequest");
 const authMiddleware = require("../middleware/authMiddleware");
+const { sendRequestNotification } = require("../utilities/email");
 
 // Create care request
 router.post("/", async (req, res) => {
@@ -81,10 +82,15 @@ router.post("/", async (req, res) => {
       id: result.insertId,
       message: "Care request created successfully",
     });
+    // After successfully saving to database, send email notification
+    await sendRequestNotification(req.body);
+
+    res.status(201).json({
+      id: result.insertId,
+      message: "Care request created successfully",
+    });
   } catch (error) {
     console.error("Detailed error in care request creation:", error);
-
-    // Return more specific error info
     res.status(500).json({
       message: "Error creating care request",
       error:
